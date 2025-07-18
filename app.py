@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
 import matplotlib.dates as mdates
+import chardet
 
 # Set Streamlit page config
 st.set_page_config(page_title="WhatsApp Chat Analyzer", page_icon="💬", layout="wide")
@@ -34,13 +35,21 @@ uploaded_file = st.sidebar.file_uploader("Upload your chat file")
 
 if uploaded_file is not None:
     bytes_data = uploaded_file.getvalue()
+
+    # Try to detect encoding
+    detected = chardet.detect(bytes_data)
+    encoding = detected['encoding'] or 'utf-8'  # fallback to utf-8 if undetected
+
     try:
-        data = bytes_data.decode('utf-8')
+        data = bytes_data.decode(encoding)
     except UnicodeDecodeError:
-        try:
-            data = bytes_data.decode('utf-8-sig')
-        except UnicodeDecodeError:
-            data = bytes_data.decode('utf-16')
+        # Fallbacks if chardet fails
+        for enc in ['utf-8', 'utf-8-sig', 'utf-16', 'ISO-8859-1']:
+            try:
+                data = bytes_data.decode(enc)
+                break
+            except UnicodeDecodeError:
+                data = None
 
     df = preprocessor.preprocess(data)
 
